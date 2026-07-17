@@ -1,0 +1,74 @@
+(ns railsignalcrew.actor-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [railsignalcrew.actor :as actor]
+            [railsignalcrew.store :as store]))
+
+(defn- fresh-store []
+  (let [st (store/mem-store)]
+    (store/register-operator! st {:operator-id "operator-1" :name "Kobo Rail Ops"})
+    (store/register-section! st {:section-id "S-1" :operator-id "operator-1"
+                                 :name "Switch 12 Junction"
+                                 :max-maintenance-cost 5000})
+    st))
+
+(deftest commits-a-log-service-record
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:operator-id "operator-1" :op :log-service-record :stake :low
+                 :section-id "S-1"}
+        result (actor/run-request! graph request {} "thread-1")]
+    (is (= :done (:status result)))
+    (is (some? (get-in result [:state :record])))
+    (is (= 1 (count (store/records-of st "operator-1"))))))
+
+(deftest commits-a-schedule-crew-operation
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:operator-id "operator-1" :op :schedule-crew-operation :stake :low
+                 :section-id "S-1"}
+        result (actor/run-request! graph request {} "thread-2")]
+    (is (= :done (:status result)))
+    (is (= 1 (count (store/records-of st "operator-1"))))))
+
+(deftest holds-a-proposal-with-unregistered-section
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:operator-id "operator-1" :op :log-service-record :stake :low
+                 :section-id "S-ghost"}
+        result (actor/run-request! graph request {} "thread-3")]
+    (is (= :hold (:disposition (:state result))))
+    (is (empty? (store/records-of st "operator-1")))))
+
+(deftest holds-a-proposal-with-switch-throw-finalization-text
+  (testing "the graph can never commit a switch-throw finalization, even via the human-approval path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:operator-id "operator-1" :op :log-service-record :stake :low
+                   :section-id "S-1" :action-text "throw the track switch on section S-1"}
+          result (actor/run-request! graph request {} "thread-4")]
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "operator-1"))))))
+
+(deftest interrupts-then-approves-flag-safety-concern-on-human-approval
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:operator-id "operator-1" :op :flag-safety-concern :stake :low
+                 :section-id "S-1"}
+        interrupted (actor/run-request! graph request {} "thread-5")]
+    (is (= :interrupted (:status interrupted)))
+    (is (empty? (store/records-of st "operator-1")))
+    (let [resumed (actor/approve! graph "thread-5")]
+      (is (= :done (:status resumed)))
+      (is (= 1 (count (store/records-of st "operator-1")))))))
+
+(deftest interrupts-then-approves-over-ceiling-maintenance-order-on-human-approval
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:operator-id "operator-1" :op :coordinate-maintenance-order :stake :low
+                 :section-id "S-1" :maintenance-cost 50000}
+        interrupted (actor/run-request! graph request {} "thread-6")]
+    (is (= :interrupted (:status interrupted)))
+    (is (empty? (store/records-of st "operator-1")))
+    (let [resumed (actor/approve! graph "thread-6")]
+      (is (= :done (:status resumed)))
+      (is (= 1 (count (store/records-of st "operator-1")))))))
