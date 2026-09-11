@@ -19,7 +19,7 @@ escalation path a human can approve through; it is an outright refusal.
 (`railsignalcrew.governor`), following the itonami actor pattern
 (ADR-2607121000): `:intake -> :advise -> :govern -> :decide -+-> :commit
 (:ok?) +-> :request-approval (:escalate?, human-in-the-loop interrupt)
-+-> :hold (:hard?)`. 21 tests / 49 assertions green (`clojure -M:test`).
++-> :hold (:hard?)`. 21 tests / 49 assertions green (`kbb -M:test`).
 
 HARD invariants (always hold, never overridable): operator provenance,
 no-actuation (`:effect` must be `:propose`), a registered section
