@@ -1,5 +1,5 @@
 (ns railsignalcrew.governor-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [railsignalcrew.store :as store]
             [railsignalcrew.advisor :as advisor]
             [railsignalcrew.governor :as governor]))

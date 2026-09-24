@@ -1,5 +1,5 @@
 (ns railsignalcrew.actor-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [railsignalcrew.actor :as actor]
             [railsignalcrew.store :as store]))
 
