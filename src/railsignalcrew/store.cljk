@@ -1,7 +1,7 @@
 (ns railsignalcrew.store
   "SSoT for the ISCO-08 8312 railway brake, signal and switch operator
   coordination practice actor (itonami actor pattern, ADR-2607121000 /
-  CLAUDE.md Actors section; README's 'Robotics premise' — a rail
+  AGENTS.md Actors section; README's 'Robotics premise' — a rail
   operations scheduling and logging robot performs service-record
   logging, crew-roster coordination and maintenance-order drafting
   under this advisor/governor pair, which never dispatches hardware
